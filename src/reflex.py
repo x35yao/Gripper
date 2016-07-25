@@ -207,7 +207,7 @@ class reflex_sf():
         else:
             return 0
 
-    # How much should each finger(1,2,3) move? and whether aperture is opening (grip = -1) the aperture (grip = 1)
+    # How much should each finger(1,2,3) move? and whether aperture is opening (grip = -1) or closing (grip = 1)
     # Fingers 1,2, and 3 have approx. total of 1200 to get from open to close the aperture
     # The Reflex is setup as multi-turn mode with Default Resolution Divider
     # Goal position is set to where we want the finger position, individually.
