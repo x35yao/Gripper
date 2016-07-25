@@ -44,7 +44,8 @@ def stop_reflex_loop():
 
 def update_joy_displacement(my_joy, palm):
     '''
-    This is the task to update the gp_servo list
+    Displacement of Logitech Extreme 3D Joystick Axis 0 and 1 are updated into the gp_servo list at the rate set by
+    'joy_loop_rate'
     :param my_joy: to get the displacement of Axis 0 (pre-shape) and 1 (aperture)
     :return: None
     '''
@@ -63,8 +64,9 @@ def update_joy_displacement(my_joy, palm):
         d1 = [1,1,1]
         d2 = [1,1,1]
         measurement_time = datetime.now()
-        #d1 = my_joy.get_axis_displacement_and_grip(0)
-        #d2 = my_joy.get_axis_displacement_and_grip(1)
+
+        d1 = my_joy.get_axis_displacement_and_grip(0)
+        d2 = my_joy.get_axis_displacement_and_grip(1)
 
         # d1 and d2 are lists Index 1 - moveby; Index 2 - direction
         my_logger.info('Counter: {} - Time of Joystick displacement: {} '.format(counter, measurement_time))
@@ -93,7 +95,8 @@ def update_joy_displacement(my_joy, palm):
 
 def move_reflex_to_goal_positions(palm):
     '''
-    This is to set the goal position for each servo
+    This is to move the Reflex to gp_servo position at a at the rate set by
+    'reflex_loop_rate'
     :type palm: The reflex object
     :param palm: This is the reflex object in the main
     :return:
@@ -115,7 +118,7 @@ def move_reflex_to_goal_positions(palm):
             gp = list(gp_servo)
 
         command_time = datetime.now()
-        #palm.move_to_goal_position(gp)
+        palm.move_to_goal_position(gp)
         my_logger.info('Counter: {} - Time of Servo Command: {} '.format(counter, command_time))
         counter += 1
         last_reflex_time = present_time
@@ -170,7 +173,6 @@ if __name__ == '__main__':
                 calibrate = 1
 
     pygame.init()
-
     # Set the width and height of the screen [width,height]
     size = [500, 700]
     screen = pygame.display.set_mode(size)
@@ -187,7 +189,6 @@ if __name__ == '__main__':
     my_controller = reflex.joy_reflex_controller(my_joy,palm)
 
     # preparing the two threads that will run
-
     get_goal_position_thread = threading.Thread(target = update_joy_displacement,args=(my_joy,palm))
     set_goal_position_thread = threading.Thread(target = move_reflex_to_goal_positions, args=(palm,))
 
