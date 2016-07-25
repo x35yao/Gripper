@@ -68,7 +68,8 @@ class reflex_sf():
             speed = MAX_SPEED
             j.set_speed(speed)
 
-
+            # joint_state = 1 means increasing goal position when finger aperture closes. -1 is the opposite
+            # for servo 4, -1 means decreasing goal position as the finger spreads.
             if i==1:
                 joint_state = 1
                 u_limits[i] = l_limits[i] + MAX_FINGER_MOVEMENT
