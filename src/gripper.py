@@ -118,7 +118,7 @@ def move_reflex_to_goal_positions(palm):
             gp = list(gp_servo)
 
         command_time = datetime.now()
-        palm.move_to_goal_position(gp)
+        #palm.move_to_goal_position(gp)
         my_logger.info('Counter: {} - Time of Servo Command: {} '.format(counter, command_time))
         counter += 1
         last_reflex_time = present_time
@@ -193,8 +193,8 @@ if __name__ == '__main__':
     set_goal_position_thread = threading.Thread(target = move_reflex_to_goal_positions, args=(palm,))
 
 
-    get_goal_position_thread.start()
-    set_goal_position_thread.start()
+    #get_goal_position_thread.start()
+    #set_goal_position_thread.start()
 
 
 
