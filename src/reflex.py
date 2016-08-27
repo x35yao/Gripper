@@ -317,8 +317,9 @@ class reflex_sf():
     def move_to_goal_position(self,gp):
         for i in range(1,5,1):
             my_logger.info("Moving  Servo: {} to Goal position: {}".format(i, gp[i]))
-            self.finger[i]["servo"].set_goal_position(gp[i])
-            self.finger[i]["GP"] = gp[i]
+            #The following two lines have been commented out since they need to be applied only after checking if within limit
+            #self.finger[i]["servo"].set_goal_position(gp[i])
+            #self.finger[i]["GP"] = gp[i]
         return
 
 class joy_reflex_controller:
