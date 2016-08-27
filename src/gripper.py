@@ -95,7 +95,7 @@ def update_joy_displacement(my_joy, palm):
 
 def move_reflex_to_goal_positions(palm):
     '''
-    This is to move the Reflex to gp_servo position at a at the rate set by
+    This is to move the Reflex to gp_servo position at the rate set by
     'reflex_loop_rate'
     :type palm: The reflex object
     :param palm: This is the reflex object in the main
