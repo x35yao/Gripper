@@ -14,7 +14,7 @@ POS_ERROR = 20
 
 #logger
 LOG_LEVEL = logging.DEBUG
-LOG_FILENAME = 'PrecisionGrabber' + datetime.now().strftime('%Y-%m-%d---%H:%M:%S')
+LOG_FILENAME = 'Gripper' + datetime.now().strftime('%Y-%m-%d---%H:%M:%S')
 
 # Define some colors
 BLACK    = (   0,   0,   0)
@@ -84,8 +84,7 @@ def update_joy_displacement(my_joy, palm):
             gp_servo[4] = gp_servo[4] - pre_shape
 
         for i in range(1,5,1):
-            #np = palm.is_finger_within_limit(i, gp_servo[i])
-            np = 1
+            np = palm.is_finger_within_limit(i, gp_servo[i])
             if np > 0:
                gp_servo[i] = np
 
@@ -151,7 +150,7 @@ if __name__ == '__main__':
         my_logger.info('       Upper Limit Position --- {}'.format(highest_position))
         my_logger.info('       Initial Position {}'.format(init_position))
 
-        calibrate = 0
+        calibrate = False
 
         if (i == 1 or i == 3):
             a = lowest_position - POS_ERROR
@@ -161,7 +160,7 @@ if __name__ == '__main__':
                                .format(i,init_position,lowest_position,highest_position))
                 print('Servo {} Initial Position {} not between Lower Limit {} and Upper Limit {}'.format(\
                     i,init_position,lowest_position,highest_position))
-                calibrate = 1
+                #calibrate = 1
         elif (i == 2):
             a = lowest_position + POS_ERROR
             b = highest_position - POS_ERROR
@@ -170,7 +169,9 @@ if __name__ == '__main__':
                                .format(i,init_position,lowest_position,highest_position))
                 print('Servo {} Initial Position {} not between Lower Limit {} and Upper Limit {}'.format(\
                     i,init_position,lowest_position,highest_position))
-                calibrate = 1
+                #calibrate = 1
+
+        # calibration is a must after every start.
 
     pygame.init()
     # Set the width and height of the screen [width,height]
@@ -187,6 +188,29 @@ if __name__ == '__main__':
     # Joystick Values
     my_joy = js.ExtremeProJoystick()
     my_controller = reflex.joy_reflex_controller(my_joy,palm)
+
+    while (calibrate == False):
+        for event in pygame.event.get():
+            if event.type == pygame.JOYBUTTONDOWN:
+                button = my_joy.get_button_pressed(event)
+                my_logger.info("Button {} pressed".format(button))
+                if button in (2,3,6,7,8,9,10,11):
+                    my_controller.set_button_press(button)
+                elif button == 1:   #silver button on the right facing the buttons
+                    my_controller.update_calibrate()
+                    calibrate = True
+                else:
+                    my_logger.info("Button {} press ignored before calibration".format(button))
+            elif event.type == pygame.JOYBUTTONUP:
+                button = my_joy.get_button_released(event)
+                my_logger.info("Button {} Released".format(button))
+                if button in (2,3,6,7,8,9,10,11):
+                    my_controller.set_button_release(button)
+                else:
+                    my_logger.info("Button {} press ignored before calibration".format(button))
+            else:
+                pass # ignoring other non-logitech joystick event types
+
 
     # preparing the two threads that will run
     get_goal_position_thread = threading.Thread(target = update_joy_displacement,args=(my_joy,palm))
@@ -229,8 +253,9 @@ if __name__ == '__main__':
 
 
 
-        '''
+
         # The code below is to test the measurement of Axes displacement in the Joystick and should be removed
+        '''
         Num_Axes = my_joy.axes
         for k in range(0,Num_Axes,1):
             d = my_joy.get_axis_displacement_and_grip(k)
@@ -239,8 +264,9 @@ if __name__ == '__main__':
                 palm.grip_fingers(d[1],d[2])
             elif d[0] == 2:
                 palm.space_finger1_and_finger2(d[1],d[2])
-        # end of test code for the measurement of Axes displacement in the Joystick
         '''
+        # end of test code for the measurement of Axes displacement in the Joystick
+
         textPrint.Screenprint(screen, "When ready to Quit, close the screen")
         textPrint.Yspace()
 

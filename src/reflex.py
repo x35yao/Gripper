@@ -411,3 +411,20 @@ class joy_reflex_controller:
             ges = nes[:-1]  # Remove ]
             fp.write(ges)   # write the remaining string
             fp.close()
+
+    def update_calibrate(self):
+        my_logger.info("New Finger positions - calibration")
+        try:
+            fp = open("calibration","w")
+        except IOError:
+            raise IOError ("Unable to open calibration file")
+
+        new_limits = self.palm.read_palm_servo_positions()
+        self.palm.set_palm_rest_position(new_limits)
+        my_logger.info("Calibration - New Rest Positions F1-{} F2-{} F3-{} F4 {}".format
+                    (new_limits[1],new_limits[2],new_limits[3],new_limits[4]))
+        s = str(new_limits)
+        nes = s[1:]     # Remove [
+        ges = nes[:-1]  # Remove ]
+        fp.write(ges)   # write the remaining string
+        fp.close()
