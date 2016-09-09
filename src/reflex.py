@@ -101,7 +101,11 @@ class reflex_sf():
 
     def set_palm_rest_position(self,set_limits):
         for i in range(1,5,1):
-            self.finger[i]["lower_limit"] = set_limits[i]
+            val = set_limits[i]
+            self.finger[i]["lower_limit"] = val
+            self.finger[i]["GP"] = val
+            self.finger[i]["CP"] = val
+            self.finger[i]["CL"] = val
             if i==1:
                 self.finger[i]["upper_limit"] = set_limits[i] + MAX_FINGER_MOVEMENT
             elif i==2:
@@ -110,6 +114,7 @@ class reflex_sf():
                 self.finger[i]["upper_limit"] = set_limits[i] + MAX_FINGER_MOVEMENT
             elif i==4:
                 self.finger[i]["upper_limit"] = set_limits[i] - MAX_PRESHAPE_MOVEMENT
+
             x = self.finger[i]["lower_limit"]
             y = self.finger[i]["upper_limit"]
             my_logger.debug('Finger {} Lower Limit {} -- Upper Limit {}'.format(i,x,y))
@@ -428,3 +433,4 @@ class joy_reflex_controller:
         ges = nes[:-1]  # Remove ]
         fp.write(ges)   # write the remaining string
         fp.close()
+        return new_limits
