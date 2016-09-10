@@ -25,7 +25,7 @@ SCAN_RATE = 20                  #1(one) second divided by scan rate is the loop 
 
 gp_servo=[0,0,0,0,0]    # position 0 is not used 1 to 4 represent servos 1 to 4
 joy_loop_rate = 100000    # in microsecond
-reflex_loop_rate = 16000    #in microsecond
+reflex_loop_rate = 160000    #in microsecond
 my_lock = threading.Lock()
 last_time = datetime.now()
 
@@ -65,35 +65,43 @@ def update_joy_displacement(my_joy, palm):
         #d2 = [1,1,1]
         measurement_time = datetime.now()
 
-        d1 = my_joy.get_axis_displacement_and_grip(0)   #Axis 0 - Preshape
-        d2 = my_joy.get_axis_displacement_and_grip(1)   #Axis 1 - aperture
+        d1 = my_joy.get_axis_displacement_and_grip(1)   #Axis 1 - Aperture
+        d0 = my_joy.get_axis_displacement_and_grip(0)   #Axis 0 - preshape
 
-        # d1 and d2 are lists Index 1 - moveby; Index 2 - direction
-        my_logger.info('Counter: {} - Time of Joystick displacement: {}'.format(counter, measurement_time))
-        counter += 1
+        # d0 and d1 are lists for axis 0 and axis 1 List Index 1 - moveby; Index 2 - direction
 
-        aperture_change = d2[1]*d2[2]
-        pre_shape = d1[1]*d1[2]
-
-        # We have to consider if the servo rotation is + 1 or -1 before we can add
-        # We have to check if the computed gp is within limits
-
-        my_logger.info('Moving Servo 1 from {} to {} '.format(gp_servo[1], gp_servo[1]+aperture_change))
-        my_logger.info('Moving Servo 2 from {} to {} '.format(gp_servo[2], gp_servo[2]-aperture_change))
-        my_logger.info('Moving Servo 3 from {} to {} '.format(gp_servo[3], gp_servo[3]+aperture_change))
-        my_logger.info('Moving Servo 4 from {} to {} '.format(gp_servo[4], gp_servo[4]-pre_shape))
-
-        with my_lock:
-            gp_servo[1] = gp_servo[1] + aperture_change
-            gp_servo[2] = gp_servo[2] - aperture_change
-            gp_servo[3] = gp_servo[3] + aperture_change
-            gp_servo[4] = gp_servo[4] - pre_shape
+        aperture_change = d1[1]*d1[2]
+        pre_shape = d0[1]*d0[2]
 
 
-        for i in range(1,5,1):
-            np = palm.is_finger_within_limit(i, gp_servo[i])
-            if np > 0:
-               gp_servo[i] = np
+
+
+
+        if (aperture_change != 0 or pre_shape != 0):
+            my_logger.info('Counter: {} - Time of Joy displacement: {} Moveby {} Preshape {}'.
+                       format(counter, str(measurement_time)[17:],aperture_change, pre_shape))
+            my_logger.info('d1[1] = {}, d1[2] = {}, d0[1] = {}, d0[2] = {}'.format(d1[1],d1[2], d0[1], d0[2]))
+            # We have to consider if the servo rotation is + 1 or -1 before we can add
+            my_logger.info('Update Servo 1 from {} to {} '.format(gp_servo[1], gp_servo[1]+aperture_change))
+            my_logger.info('Update Servo 2 from {} to {} '.format(gp_servo[2], gp_servo[2]-aperture_change))
+            my_logger.info('Update Servo 3 from {} to {} '.format(gp_servo[3], gp_servo[3]+aperture_change))
+            my_logger.info('Update Servo 4 from {} to {} '.format(gp_servo[4], gp_servo[4]-pre_shape))
+
+            counter += 1
+
+            with my_lock:
+                gp_servo[1] = gp_servo[1] + aperture_change
+                gp_servo[2] = gp_servo[2] - aperture_change
+                gp_servo[3] = gp_servo[3] + aperture_change
+                gp_servo[4] = gp_servo[4] - pre_shape
+
+            # We have to check if the computed gp is within limits
+            for i in range(1,5,1):
+                np = palm.is_finger_within_limit(i, gp_servo[i])
+                if np > 0:      # np > 1 is valid when outside limit, np will be the limit value of the servo position
+                    gp_servo[i] = np
+                else:
+                    raise RuntimeError('servo finger joint rotation error\n')
 
         last_joy_time = present_time
 
@@ -124,8 +132,8 @@ def move_reflex_to_goal_positions(palm):
             gp = list(gp_servo)
 
         command_time = datetime.now()
-        #palm.move_to_goal_position(gp)
-        my_logger.info('Counter: {} - Time of Servo Command: {}'.format(counter, command_time))
+        palm.move_to_goal_position(gp)
+        my_logger.info('Counter: {} - Time of Servo Command: {}, GP = {}'.format(counter, command_time,gp))
         counter += 1
         last_reflex_time = present_time
 
@@ -225,7 +233,7 @@ if __name__ == '__main__':
 
 
     get_goal_position_thread.start()
-    #set_goal_position_thread.start()
+    set_goal_position_thread.start()
 
 
 
