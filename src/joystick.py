@@ -6,8 +6,8 @@ import pygame
 
 JOY_DEADZONE_A0 = 0.2
 JOY_DEADZONE_A1 = 0.1
-MOVE_TICKS = 100
-MOVE_TICKS_SERVO4 = 100
+MOVE_TICKS = 30
+MOVE_TICKS_SERVO4 = 10
 
 # Before invoking this class pygame.init() needs to be called
 

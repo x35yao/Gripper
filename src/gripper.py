@@ -24,8 +24,8 @@ SCAN_RATE = 20                  #1(one) second divided by scan rate is the loop 
 
 
 gp_servo=[0,0,0,0,0]    # position 0 is not used 1 to 4 represent servos 1 to 4
-joy_loop_rate = 100000    # in microsecond
-reflex_loop_rate = 160000    #in microsecond
+joy_loop_rate = 1000    # in microsecond
+reflex_loop_rate = 16000    #in microsecond
 my_lock = threading.Lock()
 last_time = datetime.now()
 
@@ -42,7 +42,8 @@ def stop_reflex_loop():
     global reflex_command_loop
     reflex_command_loop = False
 
-def update_joy_displacement(my_joy, palm):
+
+def update_joy_displacement(my_joy, palm,e2):
     '''
     Displacement of Logitech Extreme 3D Joystick Axis 0 and 1 are updated into the gp_servo list at the rate set by
     'joy_loop_rate'
@@ -52,6 +53,7 @@ def update_joy_displacement(my_joy, palm):
     last_joy_time = last_time
     counter = 1
     while (joy_measurement_loop):
+        e2.wait()       # This is used to pause the thread in case we want to calibrate the gripper
         present_time = datetime.now()
         delta_t = present_time - last_joy_time
         delta_t = delta_t.seconds*1000000 + delta_t.microseconds
@@ -107,7 +109,7 @@ def update_joy_displacement(my_joy, palm):
 
 
 
-def move_reflex_to_goal_positions(palm):
+def move_reflex_to_goal_positions(palm,e2):
     '''
     This is to move the Reflex to gp_servo position at the rate set by
     'reflex_loop_rate'
@@ -119,6 +121,7 @@ def move_reflex_to_goal_positions(palm):
     global last_time, continue_reflex_loop
     last_reflex_time = last_time
     while (reflex_command_loop):
+        e2.wait()       # This is used to pause the thread in case we want to calibrate the gripper
         present_time = datetime.now()
         delta_t = present_time - last_reflex_time
         delta_t = delta_t.seconds*1000000 + delta_t.microseconds
@@ -204,6 +207,12 @@ if __name__ == '__main__':
     my_joy = js.ExtremeProJoystick()
     my_controller = reflex.joy_reflex_controller(my_joy,palm)
 
+    # Event to pause the thread
+    e2 = threading.Event()
+    e2.set()    #Flag is set to allow the thread move_reflex_to_goal_positions to run
+
+
+
     while (calibrate == False):
         for event in pygame.event.get():
             if event.type == pygame.JOYBUTTONDOWN:
@@ -228,8 +237,8 @@ if __name__ == '__main__':
 
 
     # preparing the two threads that will run
-    get_goal_position_thread = threading.Thread(target = update_joy_displacement,args=(my_joy,palm))
-    set_goal_position_thread = threading.Thread(target = move_reflex_to_goal_positions, args=(palm,))
+    get_goal_position_thread = threading.Thread(target = update_joy_displacement,args=(my_joy,palm,e2))
+    set_goal_position_thread = threading.Thread(target = move_reflex_to_goal_positions, args=(palm,e2))
 
 
     get_goal_position_thread.start()
@@ -252,7 +261,18 @@ if __name__ == '__main__':
             elif event.type == pygame.JOYBUTTONDOWN:
                 button = my_joy.get_button_pressed(event)
                 my_logger.info("Button {} pressed".format(button))
-                my_controller.set_button_press(button)
+                if (button == 1):
+                    e2.clear()
+                    time.sleep(1)
+                    palm.move_to_rest_position()
+                    gp_servo = palm.read_palm_servo_positions()
+                    my_logger.info("Finger Rest Positions {}".format(gp_servo))
+                    time.sleep(1)
+                    my_logger.info("Setting Event Flag")
+                    e2.set()
+                else:
+                    my_controller.set_button_press(button)
+
             elif event.type == pygame.JOYBUTTONUP:
                 button = my_joy.get_button_released(event)
                 my_logger.info("Button {} Released".format(button))

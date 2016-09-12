@@ -9,15 +9,14 @@ import logging
 
 POS_ERROR = 20
 
-MOVE_TICKS = 100
-MOVE_TICKS_SERVO4 = 100
+
 CALIBRATION_TICKS = 50
 
 
-MAX_FINGER_MOVEMENT = 2300
-MAX_PRESHAPE_MOVEMENT = 1550
+MAX_FINGER_MOVEMENT = 2000
+MAX_PRESHAPE_MOVEMENT = 1200
 
-MAX_SPEED = 500 # A max speed of 1023 is allowed
+MAX_SPEED = 400 # A max speed of 1023 is allowed
 
 # This logger is setup in the main python script
 my_logger = logging.getLogger("My_Logger")
@@ -146,6 +145,11 @@ class reflex_sf():
 
     # New goal position is checked to see if it is within limits. Otherwise limits become the new position
     def is_finger_within_limit(self, id, new_position):
+        '''
+        :param id: id is the servo id 1,2,3,4
+        :param new_position: it is the current value and this will get updated
+        :return:the same new position is returned.
+        '''
         ll = self.finger[id]["lower_limit"]
         ul = self.finger[id]["upper_limit"]
         rotation_mode = self.finger[id]["rotation"]
@@ -292,7 +296,7 @@ class reflex_sf():
         return
 
     def move_to_rest_position(self):        # checks where the servos are and sets goal positions = starting values
-        current_position = self.get_palm_current_position()
+        current_position = self.read_palm_servo_positions()
         for i in range(1,5,1):
             rest_position = self.finger[i]["lower_limit"]
             my_logger.info("Moving  Servo: {} From: {} to Rest position: {}".format(i, current_position[i],rest_position))
@@ -387,11 +391,7 @@ class joy_reflex_controller:
             self.palm.manual_move_finger(sid,grip)
             self.reset_button_press(2)
         elif self.buttons[1] == 1:
-            self.palm.move_to_rest_position()
-            self.reset_button_press(1)
-            F = self.palm.read_palm_servo_positions()
-            my_logger.info("Finger Rest Positions F1-{} F2-{} F3-{} F4-{}".format
-                    (F[1],F[2],F[3],F[4]))
+            pass    #moved to gripper.py
         elif self.buttons[0] == 1:
             fingers = self.palm.read_palm_servo_positions()
             self.reset_button_press(0)
