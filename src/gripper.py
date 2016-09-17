@@ -178,6 +178,7 @@ if __name__ == '__main__':
     palm = reflex.reflex_sf() # Reflex object ready
     my_logger.info('Reflex_SF object created')
 
+    calibrate = False
     for i in range(1,5,1):
         lowest_position = palm.finger[i]["lower_limit"]
         highest_position = palm.finger[i]["upper_limit"]
@@ -190,8 +191,6 @@ if __name__ == '__main__':
         my_logger.info('       Upper Limit Position --- {}'.format(highest_position))
         my_logger.info('       Initial Position {}'.format(init_position))
 
-        calibrate = False
-
         if (i == 1 or i == 3):
             a = lowest_position - POS_ERROR
             b= highest_position + POS_ERROR
@@ -200,7 +199,7 @@ if __name__ == '__main__':
                                .format(i,init_position,lowest_position,highest_position))
                 print('Servo {} Initial Position {} not between Lower Limit {} and Upper Limit {}'.format(\
                     i,init_position,lowest_position,highest_position))
-                #calibrate = 1
+
         elif (i == 2):
             a = lowest_position + POS_ERROR
             b = highest_position - POS_ERROR
@@ -209,7 +208,6 @@ if __name__ == '__main__':
                                .format(i,init_position,lowest_position,highest_position))
                 print('Servo {} Initial Position {} not between Lower Limit {} and Upper Limit {}'.format(\
                     i,init_position,lowest_position,highest_position))
-                #calibrate = 1
 
         # calibration is a must after every start.
 
