@@ -24,6 +24,7 @@ SCAN_RATE = 20                  #1(one) second divided by scan rate is the loop 
 
 
 gp_servo=[0,0,0,0,0]    # position 0 is not used 1 to 4 represent servos 1 to 4
+previous_gp = [0,0,0,0,0] #holds the previous value
 joy_loop_rate = 1000    # in microsecond
 reflex_loop_rate = 16000    #in microsecond
 my_lock = threading.Lock()
@@ -31,6 +32,7 @@ last_time = datetime.now()
 
 reflex_command_loop = True
 joy_measurement_loop = True
+joy_moved = False
 
 
 def stop_joy_loop():
@@ -52,6 +54,7 @@ def update_joy_displacement(my_joy, palm,e2):
     '''
     last_joy_time = last_time
     counter = 1
+    global joy_moved
     while (joy_measurement_loop):
         e2.wait()       # This is used to pause the thread in case we want to calibrate the gripper
         present_time = datetime.now()
@@ -75,27 +78,30 @@ def update_joy_displacement(my_joy, palm,e2):
         aperture_change = d1[1]*d1[2]
         pre_shape = d0[1]*d0[2]
 
-
-
-
-
         if (aperture_change != 0 or pre_shape != 0):
-            my_logger.info('Counter: {} - Time of Joy displacement: {} Moveby {} Preshape {}'.
-                       format(counter, str(measurement_time)[17:],aperture_change, pre_shape))
             my_logger.info('d1[1] = {}, d1[2] = {}, d0[1] = {}, d0[2] = {}'.format(d1[1],d1[2], d0[1], d0[2]))
-            # We have to consider if the servo rotation is + 1 or -1 before we can add
-            my_logger.info('Update Servo 1 from {} to {} '.format(gp_servo[1], gp_servo[1]+aperture_change))
-            my_logger.info('Update Servo 2 from {} to {} '.format(gp_servo[2], gp_servo[2]-aperture_change))
-            my_logger.info('Update Servo 3 from {} to {} '.format(gp_servo[3], gp_servo[3]+aperture_change))
-            my_logger.info('Update Servo 4 from {} to {} '.format(gp_servo[4], gp_servo[4]-pre_shape))
+            my_logger.info('Joy Counter: {} - Time of Joy displacement: {} Move Fingers by {} Preshape by {}'.
+                       format(counter, str(measurement_time)[17:],aperture_change, pre_shape))
 
-            counter += 1
+            # We have to consider if the servo rotation is + 1 or -1 before we can add
+            #my_logger.info('Update Servo 1 from {} to {} '.format(gp_servo[1], gp_servo[1]+aperture_change))
+            #my_logger.info('Update Servo 2 from {} to {} '.format(gp_servo[2], gp_servo[2]-aperture_change))
+            #my_logger.info('Update Servo 3 from {} to {} '.format(gp_servo[3], gp_servo[3]+aperture_change))
+            #my_logger.info('Update Servo 4 from {} to {} '.format(gp_servo[4], gp_servo[4]-pre_shape))
+
+
+            my_logger.info('Goal position before update {} '.format(gp_servo))
 
             with my_lock:
+                joy_moved = True        #This is a flag to indicate Joystick is displaced from rest position.
                 gp_servo[1] = gp_servo[1] + aperture_change
                 gp_servo[2] = gp_servo[2] - aperture_change
                 gp_servo[3] = gp_servo[3] + aperture_change
                 gp_servo[4] = gp_servo[4] - pre_shape
+
+            my_logger.info('Goal position after update {} '.format(gp_servo))
+            my_logger.info('Joy displacement flag is {} '.format(joy_moved))
+            counter += 1
 
             # We have to check if the computed gp is within limits
             for i in range(1,5,1):
@@ -108,7 +114,6 @@ def update_joy_displacement(my_joy, palm,e2):
         last_joy_time = present_time
 
 
-
 def move_reflex_to_goal_positions(palm,e2):
     '''
     This is to move the Reflex to gp_servo position at the rate set by
@@ -118,9 +123,11 @@ def move_reflex_to_goal_positions(palm,e2):
     :return:
     '''
     counter = 1
-    global last_time, continue_reflex_loop
+    global last_time, continue_reflex_loop, previous_gp, joy_moved
     last_reflex_time = last_time
+    #my_logger.info('Entering Reflex thread')
     while (reflex_command_loop):
+        #my_logger.info('Reflex thread while loop Counter = {}'.format(counter))
         e2.wait()       # This is used to pause the thread in case we want to calibrate the gripper
         present_time = datetime.now()
         delta_t = present_time - last_reflex_time
@@ -133,20 +140,35 @@ def move_reflex_to_goal_positions(palm,e2):
 
         with my_lock:
             gp = list(gp_servo)
+            move_servo = joy_moved
+            #my_logger.info('Reflex Counter: joy_moved = {}, move_servo is {}'.format(joy_moved,move_servo))
 
+        #if gp[1] != previous_gp[1] or gp[2] != previous_gp[2] or gp[3] != previous_gp[3] or gp[3] != previous_gp[3]:
         command_time = datetime.now()
-        palm.move_to_goal_position(gp)
-        my_logger.info('Counter: {} - Time of Servo Command: {}, GP = {}'.format(counter, command_time,gp))
+
+        if move_servo:
+            my_logger.info('Reflex Counter: Iam in the If condition')
+            my_logger.info('Reflex Counter: {} - Time of Command: {}'.format(counter, command_time))
+            my_logger.info('-->Reflex - GP = {} Previous GP = {}'.format(gp, previous_gp))
+            palm.move_to_goal_position(gp)
+            my_logger.info('-->Reflex - Moved to GP = {}'.format(gp))
+            previous_gp = gp
+
+            with my_lock:
+                joy_moved = False
+                my_logger.info('Reflex - Resetting joy_moved to {}'.format(joy_moved))
+
+
         counter += 1
         last_reflex_time = present_time
-
+    my_logger.info('Exit Reflex thread')
 
 if __name__ == '__main__':
 
     # Set up a logger with output level set to debug; Add the handler to the logger
     my_logger = logging.getLogger("My_Logger")
     my_logger.setLevel(LOG_LEVEL)
-    handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=2000000, backupCount=5)
+    handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=6000000, backupCount=5)
     formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     handler.setFormatter(formatter)
     my_logger.addHandler(handler)
@@ -161,7 +183,7 @@ if __name__ == '__main__':
         highest_position = palm.finger[i]["upper_limit"]
         init_position = palm.finger[i]["initial_position"]
         gp_servo[i] = init_position
-
+        previous_gp[i] = init_position
 
         my_logger.info('--- Finger {}:'.format(i))
         my_logger.info('       Lower Limit Position --- {}'.format(lowest_position))
@@ -222,6 +244,7 @@ if __name__ == '__main__':
                     my_controller.set_button_press(button)
                 elif button == 1:   #silver button on the right facing the buttons
                     gp_servo = my_controller.update_calibrate()
+                    previous_gp = gp_servo
                     calibrate = True
                 else:
                     my_logger.info("Button {} press ignored before calibration".format(button))

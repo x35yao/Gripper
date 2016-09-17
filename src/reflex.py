@@ -16,7 +16,7 @@ CALIBRATION_TICKS = 50
 MAX_FINGER_MOVEMENT = 2000
 MAX_PRESHAPE_MOVEMENT = 1200
 
-MAX_SPEED = 400 # A max speed of 1023 is allowed
+MAX_SPEED = 350 # A max speed of 1023 is allowed
 
 # This logger is setup in the main python script
 my_logger = logging.getLogger("My_Logger")
