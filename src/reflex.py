@@ -29,7 +29,7 @@ LOG_LEVEL = logging.DEBUG
 class reflex_sf():
     '''The class manages the calibration and movement of the fingers for pinch and grasp
     '''
-    def __init__(self, usb_channel = '/dev/ttyUSB0', baudrate = 57600):
+    def __init__(self, usb_channel = 'COM3', baudrate = 57600):
         dyn = dynamixel.USB2Dynamixel_Device(usb_channel, baudrate)
 
         # The l_limit corresponds to initial rest position of the fingers. It cannot go lower for 1 and 3 and higher for

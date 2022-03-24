@@ -196,11 +196,9 @@ class Robotis_Servo():
 
     def __calc_checksum(self, msg):
         chksum = 0
-        print(msg)
         for m in msg:
             chksum += m
         chksum = ( ~chksum ) % 256
-        print(chksum)
         return chksum
 
     def read_address(self, address, nBytes=1):
@@ -220,13 +218,9 @@ class Robotis_Servo():
         return self.send_instruction( msg, self.servo_id )
 
     def send_instruction(self, instruction, id):
-        print(id, instruction)
         msg = [ id, len(instruction) + 1 ] + instruction # instruction includes the command (1 byte + parameters. length = parameters+2)
-        print(msg)
         chksum = self.__calc_checksum(msg)
-        print(chksum)
         msg = [ 0xff, 0xff ] + msg + [chksum]
-        print(msg)
         self.dyn.acq_mutex()
         try:
             self.send_serial( msg )

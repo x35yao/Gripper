@@ -14,7 +14,7 @@ POS_ERROR = 20
 
 #logger
 LOG_LEVEL = logging.DEBUG
-LOG_FILENAME = 'Gripper' + datetime.now().strftime('%Y-%m-%d---%H:%M:%S')
+LOG_FILENAME = './log/' + datetime.now().strftime('%Y-%m-%d---%H-%M-%S')
 
 # Define some colors
 BLACK    = (   0,   0,   0)
