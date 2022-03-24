@@ -38,7 +38,7 @@
 #---- End of Acknowledgement
 
 import serial
-import thread
+import _thread
 import string
 
 
@@ -52,7 +52,7 @@ class USB2Dynamixel_Device():
         except:
             self.dev_name = dev_name # stores it as a /dev-mapped string for Linux / Mac
 
-        self.mutex = thread.allocate_lock()
+        self.mutex = _thread.allocate_lock()
         self.servo_dev = None
 
         self.acq_mutex()
@@ -84,15 +84,15 @@ class USB2Dynamixel_Device():
             # Closing the device first seems to prevent "Access Denied" errors on WinXP
             # (Conversations with Brian Wu @ MIT on 6/23/2010)
             self.servo_dev.close()
-            self.servo_dev.setParity('N')
-            self.servo_dev.setStopbits(1)
+            # self.servo_dev.setParity('N')
+            # self.servo_dev.setStopbits(1)
             self.servo_dev.open()
 
             self.servo_dev.flushOutput()
             self.servo_dev.flushInput()
 
-        except (serial.serialutil.SerialException), e:
-            print e.args
+        except (serial.serialutil.SerialException) as e:
+            print(e.args)
             raise RuntimeError('lib_robotis: Serial port issue!\n')
         if(self.servo_dev == None):
             raise RuntimeError('lib_robotis: Serial port not found!\n')
@@ -120,7 +120,7 @@ class Robotis_Servo():
         self.servo_id = servo_id
         try:
             if self.read_servo_id() != servo_id:
-                print 'The servo-id address is not what it should be - You should never hit this line'
+                print('The servo-id address is not what it should be - You should never hit this line')
         except:
             raise RuntimeError('lib_robotis: Error encountered.  Could not find ID (%d) on bus (%s), or USB2Dynamixel \
                 3-way switch in wrong position.\n' % ( servo_id, self.dyn.dev_name ))
@@ -162,7 +162,7 @@ class Robotis_Servo():
         ''' move to n  (-28672 to 28672 for multi-turn corresponding to 7 turns (hi resolution)
         '''
 
-        hi,lo = n / 256, n % 256
+        hi,lo = int(n / 256), n % 256
         val = self.write_address(0x1e, [lo,hi])
         return val
 
@@ -183,7 +183,8 @@ class Robotis_Servo():
         ''' 0 - Max speed. n should be less than 1023
         '''
 
-        hi,lo = n / 256, n % 256
+        hi,lo = int(n / 256), n % 256
+
         if (hi>3):
             hi = 3
         return self.write_address(0x20, [lo,hi])
@@ -195,9 +196,11 @@ class Robotis_Servo():
 
     def __calc_checksum(self, msg):
         chksum = 0
+        print(msg)
         for m in msg:
             chksum += m
         chksum = ( ~chksum ) % 256
+        print(chksum)
         return chksum
 
     def read_address(self, address, nBytes=1):
@@ -213,13 +216,17 @@ class Robotis_Servo():
             return [n1,n2 ...] (list of return parameters)
         '''
         msg = [ 0x03, address ] + data
+
         return self.send_instruction( msg, self.servo_id )
 
     def send_instruction(self, instruction, id):
+        print(id, instruction)
         msg = [ id, len(instruction) + 1 ] + instruction # instruction includes the command (1 byte + parameters. length = parameters+2)
-        chksum = self.__calc_checksum( msg )
+        print(msg)
+        chksum = self.__calc_checksum(msg)
+        print(chksum)
         msg = [ 0xff, 0xff ] + msg + [chksum]
-
+        print(msg)
         self.dyn.acq_mutex()
         try:
             self.send_serial( msg )
@@ -228,8 +235,7 @@ class Robotis_Servo():
             self.dyn.rel_mutex()
             raise
         self.dyn.rel_mutex()
-
-        if err != 0:
+        if err != b'\x00':
             self.process_err( err )
 
         return data
@@ -239,22 +245,22 @@ class Robotis_Servo():
 
     def receive_reply(self):
         start = self.dyn.read_serial( 2 )
-        if start != '\xff\xff':
+        if start != b'\xff\xff':
             raise RuntimeError('lib_robotis: Failed to receive start bytes\n')
         servo_id = self.dyn.read_serial( 1 )
         if ord(servo_id) != self.servo_id:
             raise RuntimeError('lib_robotis: Incorrect servo ID received: %d\n' % ord(servo_id))
         data_len = self.dyn.read_serial( 1 )
         err = self.dyn.read_serial( 1 )
-        data = self.dyn.read_serial( ord(data_len) - 2 )
+        data = self.dyn.read_serial( int.from_bytes(data_len, byteorder = 'big') - 2)
         checksum = self.dyn.read_serial( 1 ) # I'm not going to check...
-        return [ord(v) for v in data], ord(err)
+        return [v for v in data], err
 
 
     def send_serial(self, msg):
         """ sends the command to the servo
         """
-        out = ''
+        out = b''
         for m in msg:
-            out += chr(m)
+            out += m.to_bytes(1, byteorder = 'big')
         self.dyn.write_serial( out )
