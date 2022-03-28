@@ -40,7 +40,7 @@ class make_connection:
         message_len = len(msg)
         total = 0
         while total < message_len:
-            sent = self.sock.send(msg[total:])
+            sent = self.sock.send(msg[total:].encode())
             if sent == 0:
                 raise RuntimeError("socket connection broken")
             total = total + sent
@@ -72,12 +72,12 @@ class command_camera:
         my_logger.info("Sent Command to Camera to take picture for {}".format(filename))
 
     def start_trial(self,filename):
-        my_str = "off " + filename + "\n"
+        my_str = "on " + filename + "\n"
         self.my_connection.send_data(my_str)
         my_logger.info("Sent Command to Camera to take picture for {}".format(filename))
 
     def stop_trial(self):
-        my_str = "on" + "\n"
+        my_str = "off" + "\n"
         self.my_connection.send_data(my_str)
         my_logger.info("Sent Command to end Camera picture")
 
